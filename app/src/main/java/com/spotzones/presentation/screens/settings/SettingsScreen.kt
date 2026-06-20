@@ -40,6 +40,7 @@ import com.spotzones.domain.model.GeofenceSensitivity
 import com.spotzones.domain.model.ThemePreference
 import com.spotzones.domain.spotify.SpotifyAuthState
 import com.spotzones.presentation.components.SectionHeader
+import com.spotzones.presentation.util.launchSpotifyConnect
 import com.spotzones.ui.theme.AccentColor
 import kotlinx.coroutines.flow.collectLatest
 
@@ -54,6 +55,10 @@ fun SettingsScreen(viewModel: SettingsViewModel = hiltViewModel()) {
         uri ?: return@rememberLauncherForActivityResult
         val text = context.contentResolver.openInputStream(uri)?.bufferedReader()?.use { it.readText() }
         if (text != null) viewModel.importBackup(text)
+    }
+
+    val spotifyAuthLauncher = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) {
+        /* redirect handled by MainActivity */
     }
 
     androidx.compose.runtime.LaunchedEffect(Unit) {
@@ -83,8 +88,7 @@ fun SettingsScreen(viewModel: SettingsViewModel = hiltViewModel()) {
                             val authorized = authState as? SpotifyAuthState.Authorized
                             Text(if (authorized != null) "Connected" else "Not connected", style = MaterialTheme.typography.titleMedium)
                             Text(
-                                authorized?.displayName
-                                    ?: if (viewModel.spotifyConfigured) "Sign in to control playback" else "Set a Spotify Client ID to enable sign-in",
+                                authorized?.displayName ?: "Sign in to control playback",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
@@ -94,19 +98,11 @@ fun SettingsScreen(viewModel: SettingsViewModel = hiltViewModel()) {
                         } else {
                             androidx.compose.material3.Button(
                                 onClick = {
-                                    if (!viewModel.spotifyConfigured) {
-                                        android.widget.Toast.makeText(
-                                            context,
-                                            "Add your Spotify Client ID to secrets.properties and rebuild (see README).",
-                                            android.widget.Toast.LENGTH_LONG,
-                                        ).show()
-                                    } else {
-                                        try {
-                                            context.startActivity(viewModel.buildSpotifyAuthIntent())
-                                        } catch (e: Exception) {
-                                            android.widget.Toast.makeText(context, "No browser available to sign in.", android.widget.Toast.LENGTH_LONG).show()
-                                        }
-                                    }
+                                    launchSpotifyConnect(
+                                        context,
+                                        viewModel::buildSpotifyAuthIntent,
+                                        spotifyAuthLauncher,
+                                    )
                                 },
                             ) { Text("Connect") }
                         }

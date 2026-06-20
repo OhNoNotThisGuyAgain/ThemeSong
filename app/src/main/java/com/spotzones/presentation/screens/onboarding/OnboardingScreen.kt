@@ -37,6 +37,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.spotzones.domain.spotify.SpotifyAuthState
+import com.spotzones.presentation.util.launchSpotifyConnect
 
 /**
  * Progressive onboarding. Permissions are requested one purpose at a time, each preceded by an
@@ -54,21 +55,7 @@ fun OnboardingScreen(viewModel: OnboardingViewModel = hiltViewModel()) {
     val locationLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { }
     val notificationsLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { }
 
-    fun connectSpotify() {
-        if (!viewModel.spotifyConfigured) {
-            android.widget.Toast.makeText(
-                context,
-                "Add your Spotify Client ID to secrets.properties and rebuild (see README → Spotify setup).",
-                android.widget.Toast.LENGTH_LONG,
-            ).show()
-            return
-        }
-        try {
-            authLauncher.launch(viewModel.buildSpotifyAuthIntent())
-        } catch (e: Exception) {
-            android.widget.Toast.makeText(context, "No browser available to sign in.", android.widget.Toast.LENGTH_LONG).show()
-        }
-    }
+    fun connectSpotify() = launchSpotifyConnect(context, viewModel::buildSpotifyAuthIntent, authLauncher)
 
     Column(
         modifier = Modifier
@@ -99,11 +86,7 @@ fun OnboardingScreen(viewModel: OnboardingViewModel = hiltViewModel()) {
         OnboardingStep(
             icon = Icons.Outlined.MusicNote,
             title = "Connect Spotify",
-            description = if (viewModel.spotifyConfigured) {
-                "Sign in so SpotZones can control playback. We never see your password."
-            } else {
-                "Add your Spotify client id to the build to enable sign-in (see README)."
-            },
+            description = "Sign in so SpotZones can control playback. We never see your password.",
             done = spotifyConnected,
             actionLabel = "Connect",
             enabled = !spotifyConnected,

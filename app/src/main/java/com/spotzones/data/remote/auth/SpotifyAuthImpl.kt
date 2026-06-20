@@ -1,7 +1,7 @@
 package com.spotzones.data.remote.auth
 
-import com.spotzones.BuildConfig
 import com.spotzones.core.coroutines.IoDispatcher
+import com.spotzones.core.spotify.SpotifyCredentials
 import com.spotzones.data.remote.api.SpotifyAuthApiService
 import com.spotzones.data.security.SecureTokenStore
 import com.spotzones.domain.spotify.SpotifyAuth
@@ -33,11 +33,12 @@ class SpotifyAuthImpl @Inject constructor(
     private val authApi: SpotifyAuthApiService,
     private val tokenStore: SecureTokenStore,
     private val pendingPkce: PendingPkceStore,
+    private val credentials: SpotifyCredentials,
     @IoDispatcher private val io: CoroutineDispatcher,
 ) : SpotifyAuth {
 
-    private val clientId = BuildConfig.SPOTIFY_CLIENT_ID
-    private val redirectUri = BuildConfig.SPOTIFY_REDIRECT_URI
+    private val clientId get() = credentials.clientId
+    private val redirectUri get() = credentials.redirectUri
     private val refreshMutex = Mutex()
 
     private val _state = MutableStateFlow(currentState())

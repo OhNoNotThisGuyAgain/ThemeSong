@@ -41,9 +41,6 @@ class SettingsViewModel @Inject constructor(
 
     val authState: StateFlow<SpotifyAuthState> = spotifyAuth.state
 
-    /** True when a Spotify Client ID has been configured at build time. */
-    val spotifyConfigured: Boolean get() = authCoordinator.isConfigured
-
     /** Intent that opens the Spotify consent screen; the redirect is handled by MainActivity. */
     fun buildSpotifyAuthIntent() = authCoordinator.buildAuthIntent()
 

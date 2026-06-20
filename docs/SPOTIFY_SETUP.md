@@ -7,14 +7,22 @@ SpotZones controls playback through your own Spotify Developer app using **Autho
 2. Click **Create app**.
 3. Name it (e.g. "SpotZones – dev"), accept the terms, **Save**.
 
-## 2. Get the Client ID
-1. Open the app → **Settings**.
-2. Copy **Client ID**.
-3. In the repo, copy `secrets.properties.example` → `secrets.properties` and set:
-   ```properties
-   SPOTIFY_CLIENT_ID=paste_client_id_here
-   SPOTIFY_REDIRECT_URI=spotzones://auth
-   ```
+## 2. Embed the Client ID (maintainers only — not end users)
+
+End users tap **Connect** and sign in with their Spotify account. They never edit `secrets.properties`.
+
+As the app publisher, register **one** Spotify Developer app and embed its Client ID in the build:
+
+1. Open the app → **Settings** → copy **Client ID**.
+2. Paste it in **either** (pick one):
+   - `gradle.properties`:
+     ```properties
+     SPOTIFY_CLIENT_ID=paste_client_id_here
+     ```
+   - `app/src/main/res/values/spotify_config.xml` → `spotify_client_id` string
+3. Rebuild the APK. The Client ID is public (PKCE, no secret) and ships inside the app.
+
+Optional local override: `secrets.properties` (git-ignored) still works for development.
 
 ## 3. Register the redirect URI
 1. In **Settings → Redirect URIs**, add **exactly**:

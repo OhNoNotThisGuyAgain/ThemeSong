@@ -3,7 +3,7 @@ package com.spotzones.data.remote.auth
 import android.content.Intent
 import android.net.Uri
 import androidx.browser.customtabs.CustomTabsIntent
-import com.spotzones.BuildConfig
+import com.spotzones.core.spotify.SpotifyCredentials
 import com.spotzones.domain.spotify.SpotifyAuth
 import com.spotzones.domain.util.DomainError
 import com.spotzones.domain.util.Outcome
@@ -18,25 +18,29 @@ import javax.inject.Singleton
  */
 @Singleton
 class SpotifyAuthCoordinator @Inject constructor(
+    private val credentials: SpotifyCredentials,
     private val pendingPkce: PendingPkceStore,
     private val auth: SpotifyAuth,
 ) {
-    val isConfigured: Boolean get() = BuildConfig.SPOTIFY_CLIENT_ID.isNotBlank()
-
     /** Builds the consent-screen intent and persists the matching PKCE verifier + state. */
     fun buildAuthIntent(): Intent {
+        val clientId = credentials.clientId
+        require(clientId.isNotBlank()) {
+            "SpotZones Spotify Client ID is not configured in this build."
+        }
         val codes = PkceFactory.generate()
         val state = UUID.randomUUID().toString()
         pendingPkce.start(codes, state)
         val uri = PkceFactory.authorizeUrl(
-            clientId = BuildConfig.SPOTIFY_CLIENT_ID,
-            redirectUri = BuildConfig.SPOTIFY_REDIRECT_URI,
+            clientId = clientId,
+            redirectUri = credentials.redirectUri,
             challenge = codes.challenge,
             scopes = PkceFactory.REQUIRED_SCOPES,
             state = state,
         )
         return CustomTabsIntent.Builder()
             .setShowTitle(true)
+            .setUrlBarHidingEnabled(true)
             .build()
             .intent
             .setData(uri)
@@ -44,7 +48,7 @@ class SpotifyAuthCoordinator @Inject constructor(
 
     /** Returns true if [uri] is our OAuth redirect (so the activity knows to consume it). */
     fun isRedirect(uri: Uri?): Boolean =
-        uri != null && uri.scheme == Uri.parse(BuildConfig.SPOTIFY_REDIRECT_URI).scheme
+        uri != null && uri.scheme == Uri.parse(credentials.redirectUri).scheme
 
     suspend fun handleRedirect(uri: Uri): Outcome<Unit> {
         val error = uri.getQueryParameter("error")

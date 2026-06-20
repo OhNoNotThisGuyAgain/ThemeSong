@@ -38,7 +38,7 @@ android {
         testInstrumentationRunner = "com.spotzones.HiltTestRunner"
         vectorDrawables.useSupportLibrary = true
 
-        buildConfigField("String", "SPOTIFY_CLIENT_ID", "\"${secret("SPOTIFY_CLIENT_ID", "")}\"")
+        buildConfigField("String", "SPOTIFY_CLIENT_ID", "\"${secret("SPOTIFY_CLIENT_ID", project.findProperty("SPOTIFY_CLIENT_ID")?.toString() ?: "")}\"")
         buildConfigField("String", "SPOTIFY_REDIRECT_URI", "\"${secret("SPOTIFY_REDIRECT_URI", "spotzones://auth")}\"")
         buildConfigField("String", "MAPS_API_KEY", "\"${secret("MAPS_API_KEY", "")}\"")
         manifestPlaceholders["MAPS_API_KEY"] = secret("MAPS_API_KEY", "")

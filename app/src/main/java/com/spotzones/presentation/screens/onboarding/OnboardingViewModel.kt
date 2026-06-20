@@ -22,7 +22,6 @@ class OnboardingViewModel @Inject constructor(
 ) : ViewModel() {
 
     val authState: StateFlow<SpotifyAuthState> = spotifyAuth.state
-    val spotifyConfigured: Boolean get() = authCoordinator.isConfigured
 
     fun buildSpotifyAuthIntent(): Intent = authCoordinator.buildAuthIntent()
 

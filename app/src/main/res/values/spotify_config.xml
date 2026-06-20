@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!--
+      SpotZones Spotify Developer app Client ID (PKCE — not a secret).
+      Set once when registering the app at https://developer.spotify.com/dashboard
+      (see docs/SPOTIFY_SETUP.md). Overrides are also accepted via gradle.properties /
+      secrets.properties at build time.
+    -->
+    <string name="spotify_client_id" translatable="false"></string>
+</resources>
