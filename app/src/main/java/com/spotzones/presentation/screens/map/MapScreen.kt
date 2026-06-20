@@ -1,13 +1,10 @@
 package com.spotzones.presentation.screens.map
 
-import android.graphics.ColorMatrix
-import android.graphics.ColorMatrixColorFilter
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -46,7 +43,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.text.font.FontWeight
@@ -86,10 +82,8 @@ fun MapScreen(
     onEditZone: (String) -> Unit,
     viewModel: MapViewModel = hiltViewModel(),
 ) {
-    val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
     val haptics = LocalHapticFeedback.current
-    val darkTheme = isSystemInDarkTheme()
 
     val zones by viewModel.zones.collectAsStateWithLifecycle()
     val myLocation by viewModel.myLocation.collectAsStateWithLifecycle()
@@ -177,7 +171,6 @@ fun MapScreen(
                 }
             },
             update = { map ->
-                applyTileTheme(map, darkTheme)
                 // Rebuild only the zone overlays (markers + radius circles); leave events + my-location intact.
                 map.overlays.removeAll(zoneOverlays)
                 zoneOverlays.clear()
@@ -260,7 +253,12 @@ fun MapScreen(
             modifier = Modifier.align(Alignment.TopEnd),
         ) {
             Column(Modifier.padding(16.dp), horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                SmallFloatingActionButton(onClick = { viewModel.recenterOnMe() }) {
+                SmallFloatingActionButton(onClick = {
+                    // Primary: osmdroid's own location provider (already powering the blue dot).
+                    recenterOnMyLocation(mapView, myLocationOverlay.value)
+                    // Fallback: fused provider via the ViewModel, which emits a recenter signal.
+                    viewModel.recenterOnMe()
+                }) {
                     Icon(Icons.Outlined.MyLocation, contentDescription = "My location")
                 }
                 if (zones.isNotEmpty()) {
@@ -377,24 +375,28 @@ private fun buildCircle(center: GeoPoint, radiusMeters: Double, color: Color, se
         outlinePaint.strokeWidth = if (selected) 7f else 4f
     }
 
-/** Applies a night-mode colour matrix to the tile layer in dark theme. */
-private fun applyTileTheme(map: MapView, dark: Boolean) {
-    val filter = if (dark) {
-        // Invert + slight desaturation/hue shift = readable dark map without a paid dark tile set.
-        ColorMatrixColorFilter(
-            ColorMatrix(
-                floatArrayOf(
-                    -0.6f, -0.4f, -0.4f, 0f, 255f,
-                    -0.4f, -0.6f, -0.4f, 0f, 255f,
-                    -0.4f, -0.4f, -0.6f, 0f, 255f,
-                    0f, 0f, 0f, 1f, 0f,
-                ),
-            ),
-        )
+/**
+ * Centers the map on the device location using osmdroid's [MyLocationNewOverlay]. If a fix already
+ * exists we jump straight there; otherwise we enable updates and animate on the first fix (the
+ * callback runs off the UI thread, so we post back to the map). This is far more reliable than the
+ * fused last-known location, which is frequently null until something requests updates.
+ */
+private fun recenterOnMyLocation(map: MapView?, overlay: MyLocationNewOverlay?) {
+    if (map == null || overlay == null) return
+    overlay.enableMyLocation()
+    val fix = overlay.myLocation
+    if (fix != null) {
+        map.controller.animateTo(fix)
+        map.controller.setZoom(16.0)
     } else {
-        null
+        overlay.runOnFirstFix {
+            val first = overlay.myLocation ?: return@runOnFirstFix
+            map.post {
+                map.controller.animateTo(first)
+                map.controller.setZoom(16.0)
+            }
+        }
     }
-    map.overlayManager.tilesOverlay.setColorFilter(filter)
 }
 
 private fun fitToZones(map: MapView, zones: List<Zone>) {
