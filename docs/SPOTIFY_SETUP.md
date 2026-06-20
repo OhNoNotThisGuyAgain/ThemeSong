@@ -1,11 +1,11 @@
 # Spotify developer setup
 
-SpotZones controls playback through your own Spotify Developer app using **Authorization Code + PKCE**. No client secret is ever embedded in the app.
+PlayZones controls playback through your own Spotify Developer app using **Authorization Code + PKCE**. No client secret is ever embedded in the app.
 
 ## 1. Create a Spotify app
 1. Sign in at <https://developer.spotify.com/dashboard>.
 2. Click **Create app**.
-3. Name it (e.g. "SpotZones – dev"), accept the terms, **Save**.
+3. Name it (e.g. "PlayZones – dev"), accept the terms, **Save**.
 
 ## 2. Embed the Client ID (maintainers only — not end users)
 
@@ -51,7 +51,7 @@ While the app is in **Development mode**, only allow-listed users can authorize 
 2. Add the email of the Spotify account you'll test with.
 
 ## 6. Scopes
-SpotZones requests these scopes during sign-in — no extra dashboard config needed:
+PlayZones requests these scopes during sign-in — no extra dashboard config needed:
 
 ```
 user-read-private
@@ -64,10 +64,10 @@ streaming
 ```
 
 ## 7. Premium requirement
-The Web API player endpoints (play/pause/skip/volume) **require Spotify Premium** and an **active device**. Open Spotify and start playing once so a device is active; SpotZones can then take over.
+The Web API player endpoints (play/pause/skip/volume) **require Spotify Premium** and an **active device**. Open Spotify and start playing once so a device is active; PlayZones can then take over.
 
 ## Verifying
-1. Build & run SpotZones.
+1. Build & run PlayZones.
 2. In onboarding, tap **Connect** → a browser opens the Spotify consent screen.
 3. Approve → you're redirected back via `spotzones://auth` and the dashboard shows **Connected**.
 

@@ -46,7 +46,7 @@ sealed interface DomainError {
         override val message = "Spotify isn't installed on this device."
     }
     data object SpotifyNotAuthorized : DomainError {
-        override val message = "SpotZones isn't connected to Spotify yet."
+        override val message = "PlayZones isn't connected to Spotify yet."
     }
     data class SpotifyRemote(override val message: String) : DomainError
     data object NoNetwork : DomainError {

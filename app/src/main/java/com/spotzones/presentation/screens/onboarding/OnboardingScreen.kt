@@ -73,10 +73,10 @@ fun OnboardingScreen(viewModel: OnboardingViewModel = hiltViewModel()) {
             modifier = Modifier.size(64.dp),
         )
         Spacer(Modifier.size(16.dp))
-        Text("Welcome to SpotZones", style = MaterialTheme.typography.headlineLarge, textAlign = TextAlign.Center)
+        Text("Welcome to PlayZones", style = MaterialTheme.typography.headlineLarge, textAlign = TextAlign.Center)
         Spacer(Modifier.size(8.dp))
         Text(
-            "Your music, on autopilot. SpotZones changes what Spotify plays based on where you are and what you're doing — your playlists and account stay exactly as they are.",
+            "Your music, on autopilot. PlayZones changes what Spotify plays based on where you are and what you're doing — your playlists and account stay exactly as they are.",
             style = MaterialTheme.typography.bodyLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center,
@@ -86,7 +86,7 @@ fun OnboardingScreen(viewModel: OnboardingViewModel = hiltViewModel()) {
         OnboardingStep(
             icon = Icons.Outlined.MusicNote,
             title = "Connect Spotify",
-            description = "Sign in so SpotZones can control playback. We never see your password.",
+            description = "Sign in so PlayZones can control playback. We never see your password.",
             done = spotifyConnected,
             actionLabel = "Connect",
             enabled = !spotifyConnected,

@@ -54,7 +54,7 @@ fun HistoryScreen(viewModel: HistoryViewModel = hiltViewModel()) {
             EmptyState(
                 icon = Icons.Outlined.History,
                 title = "No history yet",
-                description = "When SpotZones changes your music for a zone, it'll show up here.",
+                description = "When PlayZones changes your music for a zone, it'll show up here.",
                 modifier = Modifier.fillMaxSize(),
             )
         } else {

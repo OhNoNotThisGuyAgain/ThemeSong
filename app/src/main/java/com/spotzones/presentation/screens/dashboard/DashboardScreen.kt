@@ -70,7 +70,7 @@ fun DashboardScreen(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Text("SpotZones", style = MaterialTheme.typography.headlineLarge, fontWeight = FontWeight.Bold)
+                Text("PlayZones", style = MaterialTheme.typography.headlineLarge, fontWeight = FontWeight.Bold)
                 IconButton(onClick = onOpenSearch) { Icon(Icons.Outlined.Search, contentDescription = "Search") }
             }
         }

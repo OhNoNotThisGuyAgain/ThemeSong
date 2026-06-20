@@ -1,8 +1,8 @@
-# SpotZones
+# PlayZones
 
 **A location-aware Spotify companion that automatically changes your music based on where you are and what you're doing.**
 
-SpotZones does **not** replace Spotify. You keep using Spotify exactly as you do today — your playlists, Spotify Connect, premium audio, and playback controls are all untouched. SpotZones sits alongside it and intelligently tells Spotify *what* to play *when*, based on geofenced **Zones** and contextual triggers.
+PlayZones does **not** replace Spotify. You keep using Spotify exactly as you do today — your playlists, Spotify Connect, premium audio, and playback controls are all untouched. PlayZones sits alongside it and intelligently tells Spotify *what* to play *when*, based on geofenced **Zones** and contextual triggers.
 
 > Enter the gym after 5 PM with your AirPods connected → Workout playlist fades in.
 > Drive above 50 mph → Road Trip playlist.
@@ -53,7 +53,7 @@ SpotZones does **not** replace Spotify. You keep using Spotify exactly as you do
 
 ## Architecture
 
-SpotZones follows **Clean Architecture + MVVM** with a strict dependency rule: `presentation → domain ← data`. The **domain** layer is pure Kotlin (no Android types) and depends on nothing; everything else depends on it via interfaces (ports), and concrete implementations (adapters) live in `data`/`location`/`automation` and are bound with Hilt.
+PlayZones follows **Clean Architecture + MVVM** with a strict dependency rule: `presentation → domain ← data`. The **domain** layer is pure Kotlin (no Android types) and depends on nothing; everything else depends on it via interfaces (ports), and concrete implementations (adapters) live in `data`/`location`/`automation` and are bound with Hilt.
 
 ```
 ┌──────────────────────────────────────────────────────────────┐
@@ -94,7 +94,7 @@ See **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)** for the full deep-dive and 
 
 ```
 app/src/main/java/com/spotzones/
-├── SpotZonesApp.kt                Application (Hilt, WorkManager, Timber)
+├── PlayZonesApp.kt                Application (Hilt, WorkManager, Timber)
 ├── core/                          cross-cutting: serialization, notifications,
 │                                  permissions, crash abstraction, dispatchers
 ├── domain/                        ❶ pure business layer
@@ -139,7 +139,7 @@ app/src/main/java/com/spotzones/
 
 ## Spotify developer setup
 
-SpotZones uses the **Authorization Code flow with PKCE** (a public client — **no client secret is ever shipped**).
+PlayZones uses the **Authorization Code flow with PKCE** (a public client — **no client secret is ever shipped**).
 
 1. Go to the [Spotify Developer Dashboard](https://developer.spotify.com/dashboard) → **Create app**.
 2. Note the **Client ID** → put it in `secrets.properties` as `SPOTIFY_CLIENT_ID`.
@@ -245,4 +245,4 @@ See **[CONTRIBUTING.md](CONTRIBUTING.md)** for coding standards, branch/commit c
 
 ---
 
-*SpotZones is an independent project and is not affiliated with or endorsed by Spotify AB.*
+*PlayZones is an independent project and is not affiliated with or endorsed by Spotify AB.*

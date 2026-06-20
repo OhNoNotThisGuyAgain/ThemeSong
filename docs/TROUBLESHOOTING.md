@@ -24,13 +24,13 @@
 1. Grant **location**, and for background switching choose **Allow all the time** (Android 10+ background location).
 2. Ensure **Automation enabled** is on (Settings) and there's no active **manual override** (Dashboard shows "Automation paused").
 3. Geofences need a moment and some movement to settle; the dwell delay debounces zone edges (~30 s).
-4. Battery optimizers (Samsung, Xiaomi, etc.) can kill background work — exclude SpotZones from aggressive battery management.
+4. Battery optimizers (Samsung, Xiaomi, etc.) can kill background work — exclude PlayZones from aggressive battery management.
 
 **Zones stop working after a reboot**
 - They should re-arm automatically (`BootCompletedReceiver`). If a vendor blocks boot receivers, open the app once to re-sync.
 
 **More than ~95 zones**
-- The OS caps geofences at 100/app. SpotZones registers the nearest ~95 and re-syncs as you move; very large zone counts may have a short delay when entering a far-away cluster.
+- The OS caps geofences at 100/app. PlayZones registers the nearest ~95 and re-syncs as you move; very large zone counts may have a short delay when entering a far-away cluster.
 
 ## Map
 

@@ -70,7 +70,7 @@ fun SettingsScreen(viewModel: SettingsViewModel = hiltViewModel()) {
                         type = "application/json"
                         putExtra(Intent.EXTRA_TEXT, effect.payload)
                     }
-                    context.startActivity(Intent.createChooser(share, "Export SpotZones backup"))
+                    context.startActivity(Intent.createChooser(share, "Export PlayZones backup"))
                 }
             }
         }
@@ -133,10 +133,10 @@ fun SettingsScreen(viewModel: SettingsViewModel = hiltViewModel()) {
             }
 
             item { SectionHeader("Privacy") }
-            item { ToggleRow("Anonymous analytics", "Help improve SpotZones (off by default)", settings.analyticsEnabled, viewModel::setAnalytics) }
+            item { ToggleRow("Anonymous analytics", "Help improve PlayZones (off by default)", settings.analyticsEnabled, viewModel::setAnalytics) }
 
             item { Spacer(Modifier.size(32.dp)) }
-            item { Text("SpotZones · v1.0.0", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant) }
+            item { Text("PlayZones · v${com.spotzones.BuildConfig.VERSION_NAME}", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant) }
         }
     }
 }

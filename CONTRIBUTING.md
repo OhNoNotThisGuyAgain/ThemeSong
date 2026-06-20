@@ -1,4 +1,4 @@
-# Contributing to SpotZones
+# Contributing to PlayZones
 
 Thanks for your interest! This project aims for a premium, production-quality bar. Please keep the following in mind.
 

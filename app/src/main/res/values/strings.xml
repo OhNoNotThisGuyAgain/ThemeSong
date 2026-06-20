@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">SpotZones</string>
+    <string name="app_name">PlayZones</string>
 
     <!-- Notification channels -->
     <string name="channel_automation_name">Automation</string>
@@ -8,7 +8,7 @@
     <string name="channel_transitions_desc">Notifies you when music changes for a zone.</string>
 
     <!-- Foreground service -->
-    <string name="automation_running">SpotZones is watching your zones</string>
+    <string name="automation_running">PlayZones is watching your zones</string>
     <string name="automation_active_zone">In zone: %1$s</string>
     <string name="automation_no_zone">No active zone</string>
     <string name="automation_paused">Automation paused</string>
@@ -18,9 +18,9 @@
 
     <!-- Permissions rationale -->
     <string name="perm_location_title">Location access</string>
-    <string name="perm_location_rationale">SpotZones uses your location to detect when you enter or leave a zone so it can change your music automatically.</string>
+    <string name="perm_location_rationale">PlayZones uses your location to detect when you enter or leave a zone so it can change your music automatically.</string>
     <string name="perm_background_title">Background location</string>
-    <string name="perm_background_rationale">To switch playlists while the app is closed, SpotZones needs to access location in the background. Choose \"Allow all the time\".</string>
+    <string name="perm_background_rationale">To switch playlists while the app is closed, PlayZones needs to access location in the background. Choose \"Allow all the time\".</string>
     <string name="perm_notifications_title">Notifications</string>
     <string name="perm_notifications_rationale">Notifications show the active zone and give you quick controls to pause automation.</string>
     <string name="perm_activity_title">Physical activity</string>

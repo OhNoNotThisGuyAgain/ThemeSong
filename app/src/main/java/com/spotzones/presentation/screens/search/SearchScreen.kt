@@ -59,7 +59,7 @@ fun SearchScreen(onBack: () -> Unit, viewModel: SearchViewModel = hiltViewModel(
         when {
             query.isBlank() -> EmptyState(
                 icon = Icons.Outlined.Search,
-                title = "Search SpotZones",
+                title = "Search PlayZones",
                 description = "Find your zones, or browse Spotify playlists, artists and songs to assign.",
                 modifier = Modifier.fillMaxSize(),
             )

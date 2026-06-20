@@ -1,6 +1,6 @@
 # Architecture
 
-This document explains the design of SpotZones and the reasoning behind each major decision.
+This document explains the design of PlayZones and the reasoning behind each major decision.
 
 ## Goals that shaped the design
 

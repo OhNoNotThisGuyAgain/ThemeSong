@@ -26,7 +26,7 @@ class SpotifyAuthCoordinator @Inject constructor(
     fun buildAuthIntent(): Intent {
         val clientId = credentials.clientId
         require(clientId.isNotBlank()) {
-            "SpotZones Spotify Client ID is not configured in this build."
+            "PlayZones Spotify Client ID is not configured in this build."
         }
         val codes = PkceFactory.generate()
         val state = UUID.randomUUID().toString()
