@@ -9,6 +9,7 @@ captures/
 .cxx/
 *.apk
 *.aab
+*.idsig
 *.keystore
 !debug.keystore
 app/libs/*.aar

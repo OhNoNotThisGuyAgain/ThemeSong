@@ -33,12 +33,19 @@ class SettingsViewModel @Inject constructor(
     private val backupManager: BackupManager,
     private val automationManager: AutomationManager,
     private val spotifyAuth: SpotifyAuth,
+    private val authCoordinator: com.spotzones.data.remote.auth.SpotifyAuthCoordinator,
 ) : ViewModel() {
 
     val settings: StateFlow<AppSettings> =
         settingsRepository.settings.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), AppSettings.Default)
 
     val authState: StateFlow<SpotifyAuthState> = spotifyAuth.state
+
+    /** True when a Spotify Client ID has been configured at build time. */
+    val spotifyConfigured: Boolean get() = authCoordinator.isConfigured
+
+    /** Intent that opens the Spotify consent screen; the redirect is handled by MainActivity. */
+    fun buildSpotifyAuthIntent() = authCoordinator.buildAuthIntent()
 
     private val _effects = Channel<SettingsEffect>(Channel.BUFFERED)
     val effects = _effects.receiveAsFlow()

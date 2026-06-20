@@ -83,13 +83,32 @@ fun SettingsScreen(viewModel: SettingsViewModel = hiltViewModel()) {
                             val authorized = authState as? SpotifyAuthState.Authorized
                             Text(if (authorized != null) "Connected" else "Not connected", style = MaterialTheme.typography.titleMedium)
                             Text(
-                                authorized?.displayName ?: "Sign in from onboarding or the dashboard",
+                                authorized?.displayName
+                                    ?: if (viewModel.spotifyConfigured) "Sign in to control playback" else "Set a Spotify Client ID to enable sign-in",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
                         }
                         if (authState is SpotifyAuthState.Authorized) {
                             OutlinedButton(onClick = viewModel::logoutSpotify) { Text("Log out") }
+                        } else {
+                            androidx.compose.material3.Button(
+                                onClick = {
+                                    if (!viewModel.spotifyConfigured) {
+                                        android.widget.Toast.makeText(
+                                            context,
+                                            "Add your Spotify Client ID to secrets.properties and rebuild (see README).",
+                                            android.widget.Toast.LENGTH_LONG,
+                                        ).show()
+                                    } else {
+                                        try {
+                                            context.startActivity(viewModel.buildSpotifyAuthIntent())
+                                        } catch (e: Exception) {
+                                            android.widget.Toast.makeText(context, "No browser available to sign in.", android.widget.Toast.LENGTH_LONG).show()
+                                        }
+                                    }
+                                },
+                            ) { Text("Connect") }
                         }
                     }
                 }

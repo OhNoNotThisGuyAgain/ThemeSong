@@ -7,6 +7,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.MyLocation
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SmallFloatingActionButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -43,14 +44,20 @@ fun MapScreen(
 ) {
     val zones by viewModel.zones.collectAsStateWithLifecycle()
     val myLocation by viewModel.myLocation.collectAsStateWithLifecycle()
+    // Permission state is read once per composition; enabling the my-location layer without it throws.
+    val locationGranted = androidx.compose.runtime.remember { viewModel.hasLocationPermission() }
+    val mapsKeyMissing = com.spotzones.BuildConfig.MAPS_API_KEY.isBlank()
 
-    val cameraPositionState = rememberCameraPositionState()
+    val cameraPositionState = rememberCameraPositionState {
+        // Default to a sensible city-level view so a fresh install isn't staring at zoom-0 ocean.
+        position = CameraPosition.fromLatLngZoom(LatLng(40.0, -73.0), 11f)
+    }
 
     // Center on the user (or first zone) once a location is available.
     LaunchedEffect(myLocation, zones.size) {
         val target = myLocation?.let { LatLng(it.latitude, it.longitude) }
             ?: zones.firstOrNull()?.let { LatLng(it.center.latitude, it.center.longitude) }
-        if (target != null && cameraPositionState.position.zoom < 2f) {
+        if (target != null) {
             cameraPositionState.position = CameraPosition.fromLatLngZoom(target, 14f)
         }
     }
@@ -59,7 +66,7 @@ fun MapScreen(
         GoogleMap(
             modifier = Modifier.fillMaxSize(),
             cameraPositionState = cameraPositionState,
-            properties = MapProperties(isMyLocationEnabled = myLocation != null, mapType = MapType.NORMAL),
+            properties = MapProperties(isMyLocationEnabled = locationGranted, mapType = MapType.NORMAL),
             uiSettings = MapUiSettings(zoomControlsEnabled = false, myLocationButtonEnabled = false),
             onMapLongClick = { latLng -> onCreateZoneAt(latLng.latitude, latLng.longitude) },
         ) {
@@ -104,5 +111,26 @@ fun MapScreen(
             icon = { Icon(Icons.Outlined.MyLocation, contentDescription = null) },
             modifier = Modifier.align(Alignment.BottomEnd).padding(16.dp),
         )
+
+        // Without a Maps API key the tiles render blank; explain it instead of a mysterious grey screen.
+        if (mapsKeyMissing) {
+            androidx.compose.material3.Card(
+                modifier = Modifier.align(Alignment.TopCenter).padding(16.dp),
+                colors = androidx.compose.material3.CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer),
+            ) {
+                androidx.compose.foundation.layout.Column(Modifier.padding(16.dp)) {
+                    Text(
+                        "Map needs a Google Maps key",
+                        style = MaterialTheme.typography.titleSmall,
+                        color = MaterialTheme.colorScheme.onErrorContainer,
+                    )
+                    Text(
+                        "Add MAPS_API_KEY to secrets.properties and rebuild (see README → Google Maps setup).",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onErrorContainer,
+                    )
+                }
+            }
+        }
     }
 }

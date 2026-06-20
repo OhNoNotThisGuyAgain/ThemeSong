@@ -32,14 +32,15 @@ android {
         applicationId = "com.spotzones"
         minSdk = 26
         targetSdk = 34
-        versionCode = 1
-        versionName = "1.0.0"
+        versionCode = 2
+        versionName = "1.0.1"
 
         testInstrumentationRunner = "com.spotzones.HiltTestRunner"
         vectorDrawables.useSupportLibrary = true
 
         buildConfigField("String", "SPOTIFY_CLIENT_ID", "\"${secret("SPOTIFY_CLIENT_ID", "")}\"")
         buildConfigField("String", "SPOTIFY_REDIRECT_URI", "\"${secret("SPOTIFY_REDIRECT_URI", "spotzones://auth")}\"")
+        buildConfigField("String", "MAPS_API_KEY", "\"${secret("MAPS_API_KEY", "")}\"")
         manifestPlaceholders["MAPS_API_KEY"] = secret("MAPS_API_KEY", "")
         manifestPlaceholders["redirectSchemeName"] = "spotzones"
         manifestPlaceholders["redirectHostName"] = "auth"

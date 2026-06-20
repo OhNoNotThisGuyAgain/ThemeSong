@@ -54,6 +54,22 @@ fun OnboardingScreen(viewModel: OnboardingViewModel = hiltViewModel()) {
     val locationLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { }
     val notificationsLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { }
 
+    fun connectSpotify() {
+        if (!viewModel.spotifyConfigured) {
+            android.widget.Toast.makeText(
+                context,
+                "Add your Spotify Client ID to secrets.properties and rebuild (see README → Spotify setup).",
+                android.widget.Toast.LENGTH_LONG,
+            ).show()
+            return
+        }
+        try {
+            authLauncher.launch(viewModel.buildSpotifyAuthIntent())
+        } catch (e: Exception) {
+            android.widget.Toast.makeText(context, "No browser available to sign in.", android.widget.Toast.LENGTH_LONG).show()
+        }
+    }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -90,8 +106,8 @@ fun OnboardingScreen(viewModel: OnboardingViewModel = hiltViewModel()) {
             },
             done = spotifyConnected,
             actionLabel = "Connect",
-            enabled = viewModel.spotifyConfigured && !spotifyConnected,
-            onAction = { authLauncher.launch(viewModel.buildSpotifyAuthIntent()) },
+            enabled = !spotifyConnected,
+            onAction = { connectSpotify() },
         )
 
         OnboardingStep(
