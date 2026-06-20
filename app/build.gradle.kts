@@ -11,8 +11,7 @@ plugins {
 
 /**
  * Secrets are read from `secrets.properties` (git-ignored) first, then fall back to
- * `gradle.properties` / environment variables. This keeps client ids and map keys out
- * of source control while still allowing CI to inject them.
+ * `gradle.properties` / environment variables. This keeps client ids out of source
  */
 val secrets = Properties().apply {
     val file = rootProject.file("secrets.properties")
@@ -32,16 +31,14 @@ android {
         applicationId = "com.spotzones"
         minSdk = 26
         targetSdk = 34
-        versionCode = 3
-        versionName = "1.0.2"
+        versionCode = 4
+        versionName = "1.0.3"
 
         testInstrumentationRunner = "com.spotzones.HiltTestRunner"
         vectorDrawables.useSupportLibrary = true
 
         buildConfigField("String", "SPOTIFY_CLIENT_ID", "\"${secret("SPOTIFY_CLIENT_ID", project.findProperty("SPOTIFY_CLIENT_ID")?.toString() ?: "")}\"")
         buildConfigField("String", "SPOTIFY_REDIRECT_URI", "\"${secret("SPOTIFY_REDIRECT_URI", "spotzones://auth")}\"")
-        buildConfigField("String", "MAPS_API_KEY", "\"${secret("MAPS_API_KEY", "")}\"")
-        manifestPlaceholders["MAPS_API_KEY"] = secret("MAPS_API_KEY", "")
         manifestPlaceholders["redirectSchemeName"] = "spotzones"
         manifestPlaceholders["redirectHostName"] = "auth"
     }
@@ -144,10 +141,9 @@ dependencies {
     implementation(libs.okhttp)
     implementation(libs.okhttp.logging)
 
-    // Location & Maps
+    // Location & map (OpenStreetMap via OsmDroid — no API key or billing)
     implementation(libs.play.services.location)
-    implementation(libs.play.services.maps)
-    implementation(libs.maps.compose)
+    implementation(libs.osmdroid.android)
 
     // Misc
     implementation(libs.coil.compose)

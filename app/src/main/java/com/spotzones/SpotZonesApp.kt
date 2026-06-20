@@ -33,6 +33,10 @@ class SpotZonesApp : Application(), Configuration.Provider {
             Timber.plant(CrashReportingTree())
         }
         notificationChannels.ensureCreated()
+        org.osmdroid.config.Configuration.getInstance().apply {
+            userAgentValue = packageName
+            load(this@SpotZonesApp, getSharedPreferences("osmdroid", MODE_PRIVATE))
+        }
     }
 
     override val workManagerConfiguration: Configuration

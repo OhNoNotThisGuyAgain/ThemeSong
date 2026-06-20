@@ -35,12 +35,13 @@
 ## Map
 
 **Map is blank / grey**
-- `MAPS_API_KEY` missing or not restricted to the right package/SHA-1, or "Maps SDK for Android" not enabled in Google Cloud.
+- The device needs internet access to download OpenStreetMap tiles. Check Wi‑Fi or mobile data.
+- Some networks block tile servers; try another connection.
 
 ## Build
 
 **`secrets.properties` not found**
-- It's optional; the build falls back to empty values (sign-in/maps disabled). Copy from `secrets.properties.example` to enable them.
+- It's optional; the build falls back to empty values (Spotify sign-in disabled). Copy from `secrets.properties.example` to enable them.
 
 **Gradle wrapper missing**
 - Run `gradle wrapper` once (or let Android Studio generate it).

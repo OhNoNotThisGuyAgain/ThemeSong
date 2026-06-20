@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.outlined.MyLocation
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.Icon
@@ -11,30 +12,38 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SmallFloatingActionButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.viewinterop.AndroidView
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.google.android.gms.maps.CameraUpdateFactory
-import com.google.android.gms.maps.model.CameraPosition
-import com.google.android.gms.maps.model.LatLng
-import com.google.maps.android.compose.Circle
-import com.google.maps.android.compose.GoogleMap
-import com.google.maps.android.compose.MapProperties
-import com.google.maps.android.compose.MapType
-import com.google.maps.android.compose.MapUiSettings
-import com.google.maps.android.compose.Marker
-import com.google.maps.android.compose.MarkerState
-import com.google.maps.android.compose.rememberCameraPositionState
+import com.spotzones.domain.model.Zone
+import org.osmdroid.events.MapEventsReceiver
+import org.osmdroid.tileprovider.tilesource.TileSourceFactory
+import org.osmdroid.util.GeoPoint
+import org.osmdroid.views.MapView
+import org.osmdroid.views.overlay.MapEventsOverlay
+import org.osmdroid.views.overlay.Marker
+import org.osmdroid.views.overlay.Polygon
+import org.osmdroid.views.overlay.mylocation.GpsMyLocationProvider
+import org.osmdroid.views.overlay.mylocation.MyLocationNewOverlay
 
 /**
- * Interactive map of all zones. Long-press anywhere to drop a new zone at that point; tap a marker
- * to edit. Radius circles are drawn per zone in its own colour, so overlaps/priorities are visible
- * at a glance.
+ * Interactive map of all zones using OpenStreetMap (free, no API key). Long-press anywhere to
+ * drop a new zone; tap a marker to edit. Radius circles are drawn per zone in its own colour.
  */
 @Composable
 fun MapScreen(
@@ -42,95 +51,143 @@ fun MapScreen(
     onEditZone: (String) -> Unit,
     viewModel: MapViewModel = hiltViewModel(),
 ) {
+    val context = LocalContext.current
+    val lifecycleOwner = LocalLifecycleOwner.current
     val zones by viewModel.zones.collectAsStateWithLifecycle()
     val myLocation by viewModel.myLocation.collectAsStateWithLifecycle()
-    // Permission state is read once per composition; enabling the my-location layer without it throws.
-    val locationGranted = androidx.compose.runtime.remember { viewModel.hasLocationPermission() }
-    val mapsKeyMissing = com.spotzones.BuildConfig.MAPS_API_KEY.isBlank()
+    val locationGranted = remember { viewModel.hasLocationPermission() }
 
-    val cameraPositionState = rememberCameraPositionState {
-        // Default to a sensible city-level view so a fresh install isn't staring at zoom-0 ocean.
-        position = CameraPosition.fromLatLngZoom(LatLng(40.0, -73.0), 11f)
+    var mapView by remember { mutableStateOf<MapView?>(null) }
+    var initialCenterDone by remember { mutableStateOf(false) }
+
+    LaunchedEffect(myLocation, zones.size) {
+        if (initialCenterDone) return@LaunchedEffect
+        val map = mapView ?: return@LaunchedEffect
+        val target = myLocation?.let { GeoPoint(it.latitude, it.longitude) }
+            ?: zones.firstOrNull()?.let { GeoPoint(it.center.latitude, it.center.longitude) }
+        if (target != null) {
+            map.controller.setZoom(14.0)
+            map.controller.setCenter(target)
+            initialCenterDone = true
+        }
     }
 
-    // Center on the user (or first zone) once a location is available.
-    LaunchedEffect(myLocation, zones.size) {
-        val target = myLocation?.let { LatLng(it.latitude, it.longitude) }
-            ?: zones.firstOrNull()?.let { LatLng(it.center.latitude, it.center.longitude) }
-        if (target != null) {
-            cameraPositionState.position = CameraPosition.fromLatLngZoom(target, 14f)
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            when (event) {
+                Lifecycle.Event.ON_RESUME -> mapView?.onResume()
+                Lifecycle.Event.ON_PAUSE -> mapView?.onPause()
+                else -> {}
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+            mapView?.onDetach()
         }
     }
 
     Box(Modifier.fillMaxSize()) {
-        GoogleMap(
+        AndroidView(
             modifier = Modifier.fillMaxSize(),
-            cameraPositionState = cameraPositionState,
-            properties = MapProperties(isMyLocationEnabled = locationGranted, mapType = MapType.NORMAL),
-            uiSettings = MapUiSettings(zoomControlsEnabled = false, myLocationButtonEnabled = false),
-            onMapLongClick = { latLng -> onCreateZoneAt(latLng.latitude, latLng.longitude) },
-        ) {
-            zones.forEach { zone ->
-                val center = LatLng(zone.center.latitude, zone.center.longitude)
-                val color = Color(zone.colorHex)
-                Circle(
-                    center = center,
-                    radius = zone.radiusMeters,
-                    strokeColor = color,
-                    strokeWidth = 4f,
-                    fillColor = color.copy(alpha = 0.18f),
-                )
-                Marker(
-                    state = MarkerState(position = center),
-                    title = zone.name,
-                    snippet = zone.playback.playlist?.name ?: "No playlist",
-                    onInfoWindowClick = { onEditZone(zone.id) },
-                    onClick = { false },
-                )
-            }
-        }
+            factory = { ctx ->
+                MapView(ctx).apply {
+                    setTileSource(TileSourceFactory.MAPNIK)
+                    setMultiTouchControls(true)
+                    controller.setZoom(11.0)
+                    controller.setCenter(GeoPoint(40.0, -73.0))
+                    overlays.add(
+                        MapEventsOverlay(
+                            object : MapEventsReceiver {
+                                override fun singleTapConfirmedHelper(p: GeoPoint?) = false
+
+                                override fun longPressHelper(p: GeoPoint?): Boolean {
+                                    p?.let { onCreateZoneAt(it.latitude, it.longitude) }
+                                    return true
+                                }
+                            },
+                        ),
+                    )
+                    mapView = this
+                    if (lifecycleOwner.lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED)) {
+                        onResume()
+                    }
+                }
+            },
+            update = { map ->
+                map.overlays.removeAll { it !is MapEventsOverlay }
+                if (locationGranted) {
+                    MyLocationNewOverlay(GpsMyLocationProvider(context), map).apply {
+                        enableMyLocation()
+                        map.overlays.add(this)
+                    }
+                }
+                zones.forEach { zone -> addZoneOverlays(map, zone, onEditZone) }
+                map.invalidate()
+            },
+        )
+
+        Text(
+            "© OpenStreetMap contributors",
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+            modifier = Modifier
+                .align(Alignment.BottomStart)
+                .padding(start = 8.dp, bottom = 8.dp),
+        )
 
         SmallFloatingActionButton(
             onClick = {
                 viewModel.refreshLocation()
                 myLocation?.let {
-                    cameraPositionState.move(CameraUpdateFactory.newLatLngZoom(LatLng(it.latitude, it.longitude), 15f))
+                    mapView?.controller?.setCenter(GeoPoint(it.latitude, it.longitude))
+                    mapView?.controller?.setZoom(15.0)
                 }
             },
-            modifier = Modifier.align(Alignment.TopEnd).padding(16.dp),
+            modifier = Modifier
+                .align(Alignment.TopEnd)
+                .padding(16.dp),
         ) {
             Icon(Icons.Outlined.MyLocation, contentDescription = "My location")
         }
 
         ExtendedFloatingActionButton(
             onClick = {
-                val c = cameraPositionState.position.target
-                onCreateZoneAt(c.latitude, c.longitude)
+                val center = mapView?.mapCenter as? GeoPoint
+                if (center != null) {
+                    onCreateZoneAt(center.latitude, center.longitude)
+                }
             },
             text = { Text("New zone here") },
-            icon = { Icon(Icons.Outlined.MyLocation, contentDescription = null) },
-            modifier = Modifier.align(Alignment.BottomEnd).padding(16.dp),
+            icon = { Icon(Icons.Default.Add, contentDescription = null) },
+            modifier = Modifier
+                .align(Alignment.BottomEnd)
+                .padding(16.dp),
         )
+    }
+}
 
-        // Without a Maps API key the tiles render blank; explain it instead of a mysterious grey screen.
-        if (mapsKeyMissing) {
-            androidx.compose.material3.Card(
-                modifier = Modifier.align(Alignment.TopCenter).padding(16.dp),
-                colors = androidx.compose.material3.CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer),
-            ) {
-                androidx.compose.foundation.layout.Column(Modifier.padding(16.dp)) {
-                    Text(
-                        "Map needs a Google Maps key",
-                        style = MaterialTheme.typography.titleSmall,
-                        color = MaterialTheme.colorScheme.onErrorContainer,
-                    )
-                    Text(
-                        "Add MAPS_API_KEY to secrets.properties and rebuild (see README → Google Maps setup).",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onErrorContainer,
-                    )
-                }
-            }
+private fun addZoneOverlays(map: MapView, zone: Zone, onEditZone: (String) -> Unit) {
+    val center = GeoPoint(zone.center.latitude, zone.center.longitude)
+    val color = Color(zone.colorHex)
+
+    Polygon().apply {
+        points = Polygon.pointsAsCircle(center, zone.radiusMeters.toDouble())
+        fillPaint.color = color.copy(alpha = 0.18f).toArgb()
+        outlinePaint.color = color.toArgb()
+        outlinePaint.strokeWidth = 4f
+        map.overlays.add(this)
+    }
+
+    Marker(map).apply {
+        position = center
+        title = zone.name
+        snippet = zone.playback.playlist?.name ?: "No playlist"
+        setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
+        setOnMarkerClickListener { _, _ ->
+            onEditZone(zone.id)
+            true
         }
+        map.overlays.add(this)
     }
 }

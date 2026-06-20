@@ -18,7 +18,7 @@ PlayZones does **not** replace Spotify. You keep using Spotify exactly as you do
 - [Project structure](#project-structure)
 - [Build & run](#build--run)
 - [Spotify developer setup](#spotify-developer-setup)
-- [Google Maps setup](#google-maps-setup)
+- [Maps](#maps)
 - [How automation works](#how-automation-works)
 - [Swapping to the App Remote SDK](#swapping-to-the-app-remote-sdk)
 - [Testing](#testing)
@@ -154,13 +154,11 @@ Scopes requested: `user-read-private`, `user-read-playback-state`, `user-modify-
 
 Full step-by-step with screenshots: **[docs/SPOTIFY_SETUP.md](docs/SPOTIFY_SETUP.md)**.
 
-## Google Maps setup
+## Maps
 
-1. In Google Cloud Console, enable **Maps SDK for Android** and create an API key.
-2. Restrict it to your app's package + SHA-1.
-3. Put it in `secrets.properties` as `MAPS_API_KEY` (injected into the manifest `meta-data`).
+PlayZones uses [OpenStreetMap](https://www.openstreetmap.org/) tiles via [OsmDroid](https://github.com/osmdroid/osmdroid). No API key, billing account, or Google Cloud setup is required — the map works out of the box as long as the device has internet access.
 
----
+Tile data © [OpenStreetMap contributors](https://www.openstreetmap.org/copyright) (ODbL).
 
 ## How automation works
 
