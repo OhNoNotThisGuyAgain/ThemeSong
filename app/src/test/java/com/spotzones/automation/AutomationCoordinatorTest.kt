@@ -56,6 +56,7 @@ class AutomationCoordinatorTest {
         coordinator = AutomationCoordinator(
             zoneRepository, ruleRepository, settingsRepository, historyRepository,
             contextProvider, spotifyController, stateStore, RuleEngine(),
+            mockk<com.spotzones.domain.analytics.Analytics>(relaxed = true),
         )
     }
 

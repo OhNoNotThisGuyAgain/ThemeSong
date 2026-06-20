@@ -32,11 +32,12 @@ class SettingsViewModelTest {
     private val automationManager = mockk<AutomationManager>(relaxed = true)
     private val spotifyAuth = mockk<SpotifyAuth>(relaxed = true)
     private val authCoordinator = mockk<com.spotzones.data.remote.auth.SpotifyAuthCoordinator>(relaxed = true)
+    private val analytics = mockk<com.spotzones.domain.analytics.Analytics>(relaxed = true)
 
     private fun viewModel(): SettingsViewModel {
         every { settingsRepository.settings } returns flowOf(AppSettings.Default)
         every { spotifyAuth.state } returns MutableStateFlow(SpotifyAuthState.Unauthorized)
-        return SettingsViewModel(settingsRepository, backupManager, automationManager, spotifyAuth, authCoordinator)
+        return SettingsViewModel(settingsRepository, backupManager, automationManager, spotifyAuth, authCoordinator, analytics)
     }
 
     @Test fun `setTheme writes through to settings repository`() = runTest {

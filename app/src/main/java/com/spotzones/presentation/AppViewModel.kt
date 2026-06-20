@@ -4,10 +4,12 @@ import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.spotzones.data.remote.auth.SpotifyAuthCoordinator
-import com.spotzones.domain.model.AppSettings
+import com.spotzones.domain.analytics.Analytics
+import com.spotzones.domain.analytics.AnalyticsEvent
 import com.spotzones.domain.repository.SettingsRepository
 import com.spotzones.domain.spotify.SpotifyAuth
 import com.spotzones.domain.spotify.SpotifyAuthState
+import com.spotzones.domain.util.onSuccess
 import com.spotzones.ui.theme.AccentColor
 import com.spotzones.ui.theme.ThemeMode
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -34,7 +36,12 @@ class AppViewModel @Inject constructor(
     settingsRepository: SettingsRepository,
     private val spotifyAuth: SpotifyAuth,
     private val authCoordinator: SpotifyAuthCoordinator,
+    private val analytics: Analytics,
 ) : ViewModel() {
+
+    init {
+        analytics.track(AnalyticsEvent.AppOpened)
+    }
 
     val uiState: StateFlow<AppUiState> =
         combine(settingsRepository.settings, spotifyAuth.state) { settings, auth ->
@@ -52,7 +59,9 @@ class AppViewModel @Inject constructor(
     /** Called from the activity when a Spotify OAuth redirect arrives. */
     fun onRedirect(uri: Uri) {
         if (!authCoordinator.isRedirect(uri)) return
-        viewModelScope.launch { authCoordinator.handleRedirect(uri) }
+        viewModelScope.launch {
+            authCoordinator.handleRedirect(uri).onSuccess { analytics.track(AnalyticsEvent.SpotifyConnected) }
+        }
     }
 
     private fun com.spotzones.domain.model.ThemePreference.toUi(): ThemeMode = when (this) {

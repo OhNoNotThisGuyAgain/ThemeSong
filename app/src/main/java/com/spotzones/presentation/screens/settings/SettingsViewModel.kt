@@ -34,6 +34,7 @@ class SettingsViewModel @Inject constructor(
     private val automationManager: AutomationManager,
     private val spotifyAuth: SpotifyAuth,
     private val authCoordinator: com.spotzones.data.remote.auth.SpotifyAuthCoordinator,
+    private val analytics: com.spotzones.domain.analytics.Analytics,
 ) : ViewModel() {
 
     val settings: StateFlow<AppSettings> =
@@ -61,11 +62,15 @@ class SettingsViewModel @Inject constructor(
     fun setAutomationEnabled(value: Boolean) {
         update { it.copy(automationEnabled = value) }
         if (value) automationManager.startMonitoring() else automationManager.stopMonitoring()
+        analytics.track(com.spotzones.domain.analytics.AnalyticsEvent.AutomationToggled(value))
     }
 
     fun exportBackup() = viewModelScope.launch {
         backupManager.export()
-            .onSuccess { _effects.send(SettingsEffect.Share(it)) }
+            .onSuccess {
+                analytics.track(com.spotzones.domain.analytics.AnalyticsEvent.BackupExported(encrypted = false))
+                _effects.send(SettingsEffect.Share(it))
+            }
             .onFailure { _effects.send(SettingsEffect.Message(it.message)) }
     }
 

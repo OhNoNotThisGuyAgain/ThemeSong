@@ -133,7 +133,14 @@ fun SettingsScreen(viewModel: SettingsViewModel = hiltViewModel()) {
             }
 
             item { SectionHeader("Privacy") }
-            item { ToggleRow("Anonymous analytics", "Help improve PlayZones (off by default)", settings.analyticsEnabled, viewModel::setAnalytics) }
+            item {
+                ToggleRow(
+                    "Anonymous analytics",
+                    "Off by default. Sends only anonymous usage events (no account, no location) under a random id you can reset by turning this off.",
+                    settings.analyticsEnabled,
+                    viewModel::setAnalytics,
+                )
+            }
 
             item { Spacer(Modifier.size(32.dp)) }
             item { Text("PlayZones · v${com.spotzones.BuildConfig.VERSION_NAME}", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant) }

@@ -1,5 +1,6 @@
 package com.spotzones.di
 
+import com.spotzones.data.analytics.HttpAnalytics
 import com.spotzones.data.backup.BackupManagerImpl
 import com.spotzones.data.remote.SpotifyCatalogImpl
 import com.spotzones.data.remote.WebApiSpotifyController
@@ -15,6 +16,7 @@ import com.spotzones.domain.repository.PlaybackPositionRepository
 import com.spotzones.domain.repository.RuleRepository
 import com.spotzones.domain.repository.SettingsRepository
 import com.spotzones.domain.repository.ZoneRepository
+import com.spotzones.domain.analytics.Analytics
 import com.spotzones.domain.spotify.SpotifyAuth
 import com.spotzones.domain.spotify.SpotifyCatalog
 import com.spotzones.domain.spotify.SpotifyController
@@ -44,4 +46,6 @@ abstract class RepositoryModule {
      * implementation to use the SDK instead of the Web API (see README).
      */
     @Binds @Singleton abstract fun spotifyController(impl: WebApiSpotifyController): SpotifyController
+
+    @Binds @Singleton abstract fun analytics(impl: HttpAnalytics): Analytics
 }

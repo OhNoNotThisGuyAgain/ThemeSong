@@ -5,6 +5,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.spotzones.automation.AutomationManager
 import com.spotzones.data.remote.auth.SpotifyAuthCoordinator
+import com.spotzones.domain.analytics.Analytics
+import com.spotzones.domain.analytics.AnalyticsEvent
 import com.spotzones.domain.repository.SettingsRepository
 import com.spotzones.domain.spotify.SpotifyAuth
 import com.spotzones.domain.spotify.SpotifyAuthState
@@ -18,6 +20,7 @@ class OnboardingViewModel @Inject constructor(
     private val settingsRepository: SettingsRepository,
     private val authCoordinator: SpotifyAuthCoordinator,
     private val automationManager: AutomationManager,
+    private val analytics: Analytics,
     spotifyAuth: SpotifyAuth,
 ) : ViewModel() {
 
@@ -29,6 +32,7 @@ class OnboardingViewModel @Inject constructor(
         viewModelScope.launch {
             settingsRepository.update { it.copy(onboardingComplete = true) }
             automationManager.startMonitoring()
+            analytics.track(AnalyticsEvent.OnboardingCompleted)
         }
     }
 }

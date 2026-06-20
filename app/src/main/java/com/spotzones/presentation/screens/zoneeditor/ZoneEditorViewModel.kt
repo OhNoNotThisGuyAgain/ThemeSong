@@ -75,6 +75,7 @@ class ZoneEditorViewModel @Inject constructor(
     private val settingsRepository: SettingsRepository,
     private val catalog: SpotifyCatalog,
     private val backupManager: com.spotzones.domain.backup.BackupManager,
+    private val analytics: com.spotzones.domain.analytics.Analytics,
 ) : ViewModel() {
 
     private val zoneId: String? = savedState.get<String>(Routes.ZONE_EDITOR_ARG_ID)?.takeIf { it != "new" }
@@ -132,14 +133,25 @@ class ZoneEditorViewModel @Inject constructor(
         if (!s.canSave) return@launch
         _state.update { it.copy(saving = true) }
         val zone = s.toZone()
+        val wasNew = s.isNew
+        val triggerCount = listOf(s.requireHeadphones, s.requireCharging, s.requireDriving).count { it }
         zoneRepository.upsert(zone)
-            .onSuccess { _events.send(ZoneEditorEvent.Saved) }
+            .onSuccess {
+                analytics.track(
+                    if (wasNew) com.spotzones.domain.analytics.AnalyticsEvent.ZoneCreated(triggerCount, !s.allDay)
+                    else com.spotzones.domain.analytics.AnalyticsEvent.ZoneEdited(viaMap = false),
+                )
+                _events.send(ZoneEditorEvent.Saved)
+            }
             .onFailure { _events.send(ZoneEditorEvent.Message(it.message)); _state.update { st -> st.copy(saving = false) } }
     }
 
     fun delete() = viewModelScope.launch {
         val id = _state.value.id ?: return@launch
-        zoneRepository.delete(id).onSuccess { _events.send(ZoneEditorEvent.Deleted) }
+        zoneRepository.delete(id).onSuccess {
+            analytics.track(com.spotzones.domain.analytics.AnalyticsEvent.ZoneDeleted)
+            _events.send(ZoneEditorEvent.Deleted)
+        }
     }
 
     fun duplicate() = viewModelScope.launch {

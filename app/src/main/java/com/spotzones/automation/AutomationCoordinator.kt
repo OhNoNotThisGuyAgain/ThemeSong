@@ -47,6 +47,7 @@ class AutomationCoordinator @Inject constructor(
     private val spotifyController: SpotifyController,
     private val stateStore: AutomationStateStore,
     private val ruleEngine: RuleEngine,
+    private val analytics: com.spotzones.domain.analytics.Analytics,
 ) {
     private val mutex = Mutex()
 
@@ -100,6 +101,7 @@ class AutomationCoordinator @Inject constructor(
                 spotifyController.connect()
                 val result = spotifyController.apply(action.config)
                 recordTransition(decision, trigger, action.config.playlist?.name, action.config.playlist?.uri, result.isSuccess, result)
+                analytics.track(com.spotzones.domain.analytics.AnalyticsEvent.ZoneTransition(trigger.name, result.isSuccess))
             }
             Action.Pause -> spotifyController.pause()
             is Action.SetVolume -> Unit // handled within Play; standalone volume rules are rare

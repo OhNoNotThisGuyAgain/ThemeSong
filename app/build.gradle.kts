@@ -31,14 +31,17 @@ android {
         applicationId = "com.spotzones"
         minSdk = 26
         targetSdk = 34
-        versionCode = 4
-        versionName = "1.0.3"
+        versionCode = 5
+        versionName = "1.0.4"
 
         testInstrumentationRunner = "com.spotzones.HiltTestRunner"
         vectorDrawables.useSupportLibrary = true
 
         buildConfigField("String", "SPOTIFY_CLIENT_ID", "\"${secret("SPOTIFY_CLIENT_ID", project.findProperty("SPOTIFY_CLIENT_ID")?.toString() ?: "")}\"")
         buildConfigField("String", "SPOTIFY_REDIRECT_URI", "\"${secret("SPOTIFY_REDIRECT_URI", "spotzones://auth")}\"")
+        // Optional anonymous-analytics collector. Blank by default → events stay on-device (logcat).
+        buildConfigField("String", "ANALYTICS_ENDPOINT", "\"${secret("ANALYTICS_ENDPOINT", "")}\"")
+        buildConfigField("String", "ANALYTICS_API_KEY", "\"${secret("ANALYTICS_API_KEY", "")}\"")
         manifestPlaceholders["redirectSchemeName"] = "spotzones"
         manifestPlaceholders["redirectHostName"] = "auth"
     }
