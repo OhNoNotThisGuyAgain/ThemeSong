@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<full-backup-content>
+    <exclude domain="sharedpref" path="secure_token_store.xml" />
+    <exclude domain="file" path="datastore/spotify_tokens.preferences_pb" />
+</full-backup-content>

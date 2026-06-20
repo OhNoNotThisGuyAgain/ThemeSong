@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<data-extraction-rules>
+    <cloud-backup>
+        <!-- Never back up encrypted token storage. -->
+        <exclude domain="sharedpref" path="secure_token_store.xml" />
+        <exclude domain="file" path="datastore/spotify_tokens.preferences_pb" />
+    </cloud-backup>
+    <device-transfer>
+        <exclude domain="sharedpref" path="secure_token_store.xml" />
+    </device-transfer>
+</data-extraction-rules>
