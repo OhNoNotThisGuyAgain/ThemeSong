@@ -11,6 +11,7 @@ captures/
 *.aab
 *.idsig
 *.keystore
+.kotlin/
 !debug.keystore
 app/libs/*.aar
 secrets.properties

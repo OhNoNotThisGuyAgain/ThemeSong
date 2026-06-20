@@ -2,7 +2,11 @@ package com.spotzones.domain.model
 
 import kotlinx.serialization.Serializable
 
-/** Reference to a Spotify playable context (playlist, album or artist). */
+/**
+ * Reference to a Spotify playable source. Despite the name (kept for persisted-data compatibility),
+ * this represents either a *context* (playlist/album/artist — `spotify:playlist:…`) or a single
+ * *track* (`spotify:track:…`). [isTrack] lets the playback layer pick the right play request.
+ */
 @Serializable
 data class PlaylistRef(
     val uri: String,
@@ -12,6 +16,7 @@ data class PlaylistRef(
     val trackCount: Int? = null,
 ) {
     val isValid: Boolean get() = uri.startsWith("spotify:")
+    val isTrack: Boolean get() = uri.startsWith("spotify:track:")
 }
 
 /**

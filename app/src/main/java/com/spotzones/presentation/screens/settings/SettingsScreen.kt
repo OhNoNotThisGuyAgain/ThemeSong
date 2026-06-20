@@ -1,6 +1,11 @@
 package com.spotzones.presentation.screens.settings
 
+import android.Manifest
 import android.content.Intent
+import android.content.pm.PackageManager
+import android.net.Uri
+import android.os.Build
+import android.provider.Settings
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
@@ -27,14 +32,22 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.unit.dp
+import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.spotzones.domain.model.GeofenceSensitivity
 import com.spotzones.domain.model.ThemePreference
@@ -110,6 +123,9 @@ fun SettingsScreen(viewModel: SettingsViewModel = hiltViewModel()) {
                 }
             }
 
+            item { SectionHeader("Permissions") }
+            item { PermissionsSection() }
+
             item { SectionHeader("Appearance") }
             item { ThemeRow(settings.themePreference, viewModel::setTheme) }
             item { AccentRow(settings.accentColorId, viewModel::setAccent) }
@@ -156,6 +172,107 @@ private fun ToggleRow(title: String, subtitle: String, checked: Boolean, onChang
             Text(subtitle, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
         Switch(checked = checked, onCheckedChange = onChange)
+    }
+}
+
+/**
+ * In-app permission management. Re-checks grant state on every RESUME (so returning from the system
+ * settings screen reflects changes), offers an in-line request for each, and a shortcut to the app's
+ * system settings page for permissions that can't be re-requested (permanently denied, or background
+ * location on Android 11+, which the OS only grants from settings).
+ */
+@Composable
+private fun PermissionsSection() {
+    val context = LocalContext.current
+    val lifecycleOwner = LocalLifecycleOwner.current
+    var refresh by remember { mutableIntStateOf(0) }
+
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) refresh++
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
+
+    fun granted(permission: String): Boolean =
+        ContextCompat.checkSelfPermission(context, permission) == PackageManager.PERMISSION_GRANTED
+
+    val multiLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { refresh++ }
+    val singleLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { refresh++ }
+
+    // Recomputed whenever `refresh` changes.
+    val fineLocation = remember(refresh) { granted(Manifest.permission.ACCESS_FINE_LOCATION) || granted(Manifest.permission.ACCESS_COARSE_LOCATION) }
+    val backgroundLocation = remember(refresh) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) granted(Manifest.permission.ACCESS_BACKGROUND_LOCATION) else fineLocation
+    }
+    val notifications = remember(refresh) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) granted(Manifest.permission.POST_NOTIFICATIONS) else true
+    }
+    val activity = remember(refresh) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) granted(Manifest.permission.ACTIVITY_RECOGNITION) else true
+    }
+
+    fun openAppSettings() {
+        val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.fromParts("package", context.packageName, null))
+            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        context.startActivity(intent)
+    }
+
+    Column {
+        PermissionRow(
+            title = "Location",
+            subtitle = "Detect when you enter or leave a zone.",
+            granted = fineLocation,
+            onGrant = { multiLauncher.launch(arrayOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION)) },
+        )
+        PermissionRow(
+            title = "Background location",
+            subtitle = "Switch music while the app is closed. Choose \"Allow all the time\".",
+            granted = backgroundLocation,
+            // On Android 11+ background location can only be enabled from system settings.
+            onGrant = {
+                if (Build.VERSION.SDK_INT in Build.VERSION_CODES.Q until Build.VERSION_CODES.R) {
+                    singleLauncher.launch(Manifest.permission.ACCESS_BACKGROUND_LOCATION)
+                } else {
+                    openAppSettings()
+                }
+            },
+        )
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            PermissionRow(
+                title = "Notifications",
+                subtitle = "Show the active zone and quick controls.",
+                granted = notifications,
+                onGrant = { singleLauncher.launch(Manifest.permission.POST_NOTIFICATIONS) },
+            )
+        }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            PermissionRow(
+                title = "Physical activity",
+                subtitle = "Trigger zones by walking / driving.",
+                granted = activity,
+                onGrant = { singleLauncher.launch(Manifest.permission.ACTIVITY_RECOGNITION) },
+            )
+        }
+        OutlinedButton(onClick = { openAppSettings() }, modifier = Modifier.padding(top = 8.dp)) {
+            Text("Open app settings")
+        }
+    }
+}
+
+@Composable
+private fun PermissionRow(title: String, subtitle: String, granted: Boolean, onGrant: () -> Unit) {
+    Row(Modifier.fillMaxWidth().padding(vertical = 10.dp), verticalAlignment = Alignment.CenterVertically) {
+        Column(Modifier.weight(1f)) {
+            Text(title, style = MaterialTheme.typography.titleMedium)
+            Text(subtitle, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+        if (granted) {
+            Icon(Icons.Filled.Check, contentDescription = "Granted", tint = MaterialTheme.colorScheme.primary)
+        } else {
+            OutlinedButton(onClick = onGrant) { Text("Grant") }
+        }
     }
 }
 

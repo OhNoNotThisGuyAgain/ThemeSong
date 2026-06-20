@@ -3,10 +3,14 @@ package com.spotzones.data.remote.dto
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
-/** Request body for starting playback of a context (playlist) at an optional position. */
+/**
+ * Request body for starting playback. Use [contextUri] for a playlist/album/artist (optionally with
+ * an [offset]/[positionMs] resume point), or [uris] for one or more explicit tracks.
+ */
 @Serializable
 data class PlayRequestDto(
     @SerialName("context_uri") val contextUri: String? = null,
+    val uris: List<String>? = null,
     @SerialName("position_ms") val positionMs: Long? = null,
     val offset: OffsetDto? = null,
 )

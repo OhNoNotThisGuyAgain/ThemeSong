@@ -16,12 +16,15 @@ import com.spotzones.domain.model.Zone
 import com.spotzones.domain.repository.SettingsRepository
 import com.spotzones.domain.repository.ZoneRepository
 import com.spotzones.domain.spotify.SpotifyCatalog
+import com.spotzones.domain.spotify.TrackSearchResult
 import com.spotzones.domain.util.onFailure
 import com.spotzones.domain.util.onSuccess
 import com.spotzones.presentation.navigation.Routes
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -56,6 +59,9 @@ data class ZoneEditorState(
     val requireDriving: Boolean = false,
     val availablePlaylists: List<PlaylistRef> = emptyList(),
     val playlistsLoading: Boolean = false,
+    val trackQuery: String = "",
+    val trackResults: List<TrackSearchResult> = emptyList(),
+    val tracksLoading: Boolean = false,
     val saving: Boolean = false,
 ) {
     val canSave: Boolean get() = name.isNotBlank() && !saving
@@ -119,6 +125,40 @@ class ZoneEditorViewModel @Inject constructor(
                 _state.update { it.copy(playlistsLoading = false) }
                 _events.send(ZoneEditorEvent.Message(error.message))
             }
+    }
+
+    private var trackJob: Job? = null
+
+    /** Debounced song search for the "Songs" tab of the source picker. */
+    fun searchTracks(query: String) {
+        _state.update { it.copy(trackQuery = query) }
+        trackJob?.cancel()
+        if (query.isBlank()) {
+            _state.update { it.copy(trackResults = emptyList(), tracksLoading = false) }
+            return
+        }
+        trackJob = viewModelScope.launch {
+            delay(300)
+            _state.update { it.copy(tracksLoading = true) }
+            catalog.searchTracks(query)
+                .onSuccess { list -> _state.update { it.copy(trackResults = list, tracksLoading = false) } }
+                .onFailure { _state.update { it.copy(tracksLoading = false) } }
+        }
+    }
+
+    /** Selects a single track as the zone's source (uri `spotify:track:…`). */
+    fun pickTrack(track: TrackSearchResult) {
+        _state.update {
+            it.copy(
+                playlist = PlaylistRef(
+                    uri = track.uri,
+                    name = track.title,
+                    imageUrl = track.imageUrl,
+                    ownerName = track.artists,
+                    trackCount = null,
+                ),
+            )
+        }
     }
 
     fun update(transform: (ZoneEditorState) -> ZoneEditorState) = _state.update(transform)

@@ -29,7 +29,10 @@ data class Zone(
 ) {
     init {
         require(name.isNotBlank()) { "zone name required" }
-        require(radiusMeters in 20.0..50_000.0) { "radius out of supported range" }
+        // Down to 5 m so room-scale zones are possible. Note: GPS accuracy limits how reliably the
+        // OS geofence fires below ~100 m; the in-app evaluator still uses exact distance, so small
+        // zones work best with good signal / the foreground service running.
+        require(radiusMeters in 5.0..50_000.0) { "radius out of supported range" }
         require(priority in 1..100) { "priority must be 1..100" }
     }
 

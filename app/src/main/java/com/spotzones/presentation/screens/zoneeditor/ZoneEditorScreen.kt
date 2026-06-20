@@ -140,19 +140,22 @@ fun ZoneEditorScreen(onDone: () -> Unit, viewModel: ZoneEditorViewModel = hiltVi
                 }
             }
 
-            SectionHeader("Playlist")
+            SectionHeader("Music")
             Card(onClick = { showPlaylistPicker = true }, modifier = Modifier.fillMaxWidth()) {
                 Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
                     Column(Modifier.weight(1f)) {
-                        Text(state.playlist?.name ?: "Choose a playlist", style = MaterialTheme.typography.titleMedium)
-                        state.playlist?.ownerName?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }
+                        Text(state.playlist?.name ?: "Choose a playlist or song", style = MaterialTheme.typography.titleMedium)
+                        val subtitle = state.playlist?.let { ref ->
+                            if (ref.isTrack) "Song · ${ref.ownerName ?: ""}".trimEnd(' ', '·') else (ref.ownerName ?: "Playlist")
+                        }
+                        if (subtitle != null) Text(subtitle, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                     Text("Change", color = MaterialTheme.colorScheme.primary)
                 }
             }
 
             SectionHeader("Geofence")
-            LabeledSlider("Radius", "${state.radiusMeters.toInt()} m", state.radiusMeters, 20f..2000f) { v -> viewModel.update { it.copy(radiusMeters = v) } }
+            LabeledSlider("Radius", "${state.radiusMeters.toInt()} m", state.radiusMeters, 5f..2000f) { v -> viewModel.update { it.copy(radiusMeters = v) } }
             LabeledSlider("Priority", state.priority.toInt().toString(), state.priority, 1f..100f) { v -> viewModel.update { it.copy(priority = v) } }
 
             SectionHeader("Playback")
@@ -203,10 +206,12 @@ fun ZoneEditorScreen(onDone: () -> Unit, viewModel: ZoneEditorViewModel = hiltVi
     if (showPlaylistPicker) {
         val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
         ModalBottomSheet(onDismissRequest = { showPlaylistPicker = false }, sheetState = sheetState) {
-            PlaylistPickerContent(
+            SourcePickerContent(
                 state = state,
-                onPick = { ref -> viewModel.update { it.copy(playlist = ref) }; showPlaylistPicker = false },
+                onPickPlaylist = { ref -> viewModel.update { it.copy(playlist = ref) }; showPlaylistPicker = false },
+                onPickTrack = { track -> viewModel.pickTrack(track); showPlaylistPicker = false },
                 onRetry = viewModel::loadPlaylists,
+                onTrackQuery = viewModel::searchTracks,
             )
         }
     }
@@ -275,25 +280,68 @@ private fun TimeField(label: String, minute: Int, modifier: Modifier, onChange: 
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun PlaylistPickerContent(state: ZoneEditorState, onPick: (com.spotzones.domain.model.PlaylistRef) -> Unit, onRetry: () -> Unit) {
+private fun SourcePickerContent(
+    state: ZoneEditorState,
+    onPickPlaylist: (com.spotzones.domain.model.PlaylistRef) -> Unit,
+    onPickTrack: (com.spotzones.domain.spotify.TrackSearchResult) -> Unit,
+    onRetry: () -> Unit,
+    onTrackQuery: (String) -> Unit,
+) {
+    var tab by remember { mutableStateOf(0) } // 0 = Playlists, 1 = Songs
     Column(Modifier.fillMaxWidth().padding(16.dp)) {
-        Text("Choose a playlist", style = MaterialTheme.typography.titleLarge)
-        Spacer(Modifier.size(8.dp))
-        when {
-            state.playlistsLoading -> LoadingState(Modifier.size(120.dp))
-            state.availablePlaylists.isEmpty() -> {
-                Text("No playlists found. Make sure you're connected to Spotify.", color = MaterialTheme.colorScheme.onSurfaceVariant)
-                Spacer(Modifier.size(8.dp))
-                Button(onClick = onRetry) { Text("Retry") }
+        Text("Choose music", style = MaterialTheme.typography.titleLarge)
+        Spacer(Modifier.size(12.dp))
+        SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
+            SegmentedButton(selected = tab == 0, onClick = { tab = 0 }, shape = SegmentedButtonDefaults.itemShape(0, 2)) { Text("Playlists") }
+            SegmentedButton(selected = tab == 1, onClick = { tab = 1 }, shape = SegmentedButtonDefaults.itemShape(1, 2)) { Text("Songs") }
+        }
+        Spacer(Modifier.size(12.dp))
+
+        if (tab == 0) {
+            when {
+                state.playlistsLoading -> LoadingState(Modifier.size(120.dp))
+                state.availablePlaylists.isEmpty() -> {
+                    Text("No playlists found. Make sure you're connected to Spotify.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Spacer(Modifier.size(8.dp))
+                    Button(onClick = onRetry) { Text("Retry") }
+                }
+                else -> LazyColumn {
+                    items(state.availablePlaylists.size) { i ->
+                        val ref = state.availablePlaylists[i]
+                        Row(Modifier.fillMaxWidth().clickable { onPickPlaylist(ref) }.padding(vertical = 12.dp)) {
+                            Column {
+                                Text(ref.name, style = MaterialTheme.typography.titleMedium, maxLines = 1)
+                                // Only show a count when we actually have one (>0); otherwise the owner/label.
+                                val subtitle = ref.trackCount?.takeIf { it > 0 }?.let { "$it songs" } ?: (ref.ownerName ?: "Playlist")
+                                Text(subtitle, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
+                        }
+                    }
+                }
             }
-            else -> androidx.compose.foundation.lazy.LazyColumn {
-                items(state.availablePlaylists.size) { i ->
-                    val ref = state.availablePlaylists[i]
-                    Row(Modifier.fillMaxWidth().clickable { onPick(ref) }.padding(vertical = 12.dp)) {
-                        Column {
-                            Text(ref.name, style = MaterialTheme.typography.titleMedium)
-                            Text("${ref.trackCount ?: 0} tracks", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        } else {
+            OutlinedTextField(
+                value = state.trackQuery,
+                onValueChange = onTrackQuery,
+                placeholder = { Text("Search songs") },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth(),
+            )
+            Spacer(Modifier.size(8.dp))
+            when {
+                state.tracksLoading -> LoadingState(Modifier.size(80.dp))
+                state.trackQuery.isBlank() -> Text("Search to pin a single song to this zone.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                state.trackResults.isEmpty() -> Text("No songs found.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                else -> LazyColumn {
+                    items(state.trackResults.size) { i ->
+                        val track = state.trackResults[i]
+                        Row(Modifier.fillMaxWidth().clickable { onPickTrack(track) }.padding(vertical = 12.dp)) {
+                            Column {
+                                Text(track.title, style = MaterialTheme.typography.titleMedium, maxLines = 1)
+                                Text(track.artists, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1)
+                            }
                         }
                     }
                 }

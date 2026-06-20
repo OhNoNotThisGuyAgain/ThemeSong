@@ -95,10 +95,17 @@ fun MapScreen(
     val zoneOverlays = remember { mutableListOf<Overlay>() }
     var initialCenterDone by remember { mutableStateOf(false) }
 
-    // Seed the initial camera on the user (or first zone) once available.
-    LaunchedEffect(myLocation, zones.size) {
+    // Initial camera: restore the last position you were at, else fall back to you / first zone.
+    LaunchedEffect(mapView, myLocation, zones.size) {
         if (initialCenterDone) return@LaunchedEffect
         val map = mapView ?: return@LaunchedEffect
+        val saved = viewModel.lastCamera()
+        if (saved != null) {
+            map.controller.setZoom(saved.zoom)
+            map.controller.setCenter(GeoPoint(saved.latitude, saved.longitude))
+            initialCenterDone = true
+            return@LaunchedEffect
+        }
         val target = myLocation?.let { GeoPoint(it.latitude, it.longitude) }
             ?: zones.firstOrNull()?.let { GeoPoint(it.center.latitude, it.center.longitude) }
         if (target != null) {
@@ -116,16 +123,26 @@ fun MapScreen(
         }
     }
 
+    fun persistCamera() {
+        val map = mapView ?: return
+        val center = map.mapCenter as? GeoPoint ?: return
+        viewModel.saveCamera(center.latitude, center.longitude, map.zoomLevelDouble)
+    }
+
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
             when (event) {
                 Lifecycle.Event.ON_RESUME -> mapView?.onResume()
-                Lifecycle.Event.ON_PAUSE -> mapView?.onPause()
+                Lifecycle.Event.ON_PAUSE -> {
+                    persistCamera()
+                    mapView?.onPause()
+                }
                 else -> {}
             }
         }
         lifecycleOwner.lifecycle.addObserver(observer)
         onDispose {
+            persistCamera()
             lifecycleOwner.lifecycle.removeObserver(observer)
             mapView?.onDetach()
         }
@@ -339,7 +356,7 @@ private fun ZoneEditPanel(
                 Text("Radius", style = MaterialTheme.typography.bodyLarge)
                 Text("${draft.radiusMeters.toInt()} m", color = MaterialTheme.colorScheme.primary)
             }
-            Slider(value = draft.radiusMeters, onValueChange = onRadius, valueRange = 20f..2000f)
+            Slider(value = draft.radiusMeters, onValueChange = onRadius, valueRange = 5f..2000f)
 
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                 Text("Priority", style = MaterialTheme.typography.bodyLarge)

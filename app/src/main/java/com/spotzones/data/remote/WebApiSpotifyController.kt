@@ -84,19 +84,25 @@ class WebApiSpotifyController @Inject constructor(
     }
 
     override suspend fun apply(config: PlaybackConfig): Outcome<Unit> = command {
-        val playlist = config.playlist ?: return@command
-        // Resume saved position for this context if requested, else start fresh.
-        val saved = if (config.resumePlaybackPosition) positionRepository.get(playlist.uri) else null
-        val body = PlayRequestDto(
-            contextUri = playlist.uri,
-            positionMs = saved?.positionMs,
-            offset = saved?.let { OffsetDto(uri = it.trackUri) },
-        )
+        val source = config.playlist ?: return@command
+        val body = if (source.isTrack) {
+            // Single track: play it directly (no saved-position / context semantics).
+            PlayRequestDto(uris = listOf(source.uri))
+        } else {
+            // Context (playlist/album/artist): optionally resume the saved position.
+            val saved = if (config.resumePlaybackPosition) positionRepository.get(source.uri) else null
+            PlayRequestDto(
+                contextUri = source.uri,
+                positionMs = saved?.positionMs,
+                offset = saved?.let { OffsetDto(uri = it.trackUri) },
+            )
+        }
 
         if (config.transitionMode == TransitionMode.CROSSFADE && config.fadeInVolume) {
             api.volume(0).ensureSuccess()
         }
-        api.shuffle(config.shuffle).ensureSuccess()
+        // Shuffle is meaningless for a single track; only set it for contexts.
+        if (!source.isTrack) api.shuffle(config.shuffle).ensureSuccess()
         api.repeat(config.repeatMode.toApi()).ensureSuccess()
         api.play(body).ensureSuccess()
 

@@ -3,6 +3,8 @@ package com.spotzones.presentation.screens.map
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.spotzones.core.permissions.PermissionChecker
+import com.spotzones.data.settings.MapCameraStore
+import com.spotzones.data.settings.SavedCamera
 import com.spotzones.domain.analytics.Analytics
 import com.spotzones.domain.analytics.AnalyticsEvent
 import com.spotzones.domain.location.LocationProvider
@@ -38,7 +40,14 @@ class MapViewModel @Inject constructor(
     private val locationProvider: LocationProvider,
     private val permissions: PermissionChecker,
     private val analytics: Analytics,
+    private val cameraStore: MapCameraStore,
 ) : ViewModel() {
+
+    /** Last camera position, restored when the Map reopens. */
+    fun lastCamera(): SavedCamera? = cameraStore.last()
+
+    fun saveCamera(latitude: Double, longitude: Double, zoom: Double) =
+        cameraStore.save(latitude, longitude, zoom)
 
     val zones: StateFlow<List<Zone>> =
         zoneRepository.observeZones().stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
@@ -97,7 +106,7 @@ class MapViewModel @Inject constructor(
     }
 
     fun updateDraftRadius(meters: Float) {
-        _editing.update { it?.copy(radiusMeters = meters.coerceIn(20f, 50_000f)) }
+        _editing.update { it?.copy(radiusMeters = meters.coerceIn(5f, 50_000f)) }
     }
 
     fun updateDraftPriority(priority: Int) {
